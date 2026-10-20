@@ -1,9 +1,9 @@
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { Device } from 'smart-bus';
 
-import { HDLBusproHomebridge } from './HDLPlatform';
-import { DryListener } from './ContactSensor';
-import { ABCDevice } from './ABC';
+import { HDLBusproHomebridge } from './HDLPlatform.js';
+import { DryListener } from './ContactSensor.js';
+import { ABCDevice } from './ABC.js';
 
 export class SmokeSensor implements ABCDevice {
   private service: Service;

@@ -3,8 +3,8 @@ import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { EventEmitter } from 'events';
 import { Device } from 'smart-bus';
 
-import { HDLBusproHomebridge } from './HDLPlatform';
-import { ABCDevice, ABCListener } from './ABC';
+import { HDLBusproHomebridge } from './HDLPlatform.js';
+import { ABCDevice, ABCListener } from './ABC.js';
 
 const HMBOpening = 1;
 const HMBClosing = 0;
@@ -24,7 +24,6 @@ export class RelayCurtains implements ABCDevice {
   private HDLClosing = 2;
   private HDLStop = 0;
 
-
   constructor(
     private readonly platform: HDLBusproHomebridge,
     private readonly accessory: PlatformAccessory,
@@ -39,6 +38,11 @@ export class RelayCurtains implements ABCDevice {
   ) {
     const Service = this.platform.Service;
     const Characteristic = this.platform.Characteristic;
+
+    // Initialize from persisted context
+    this.RelayCurtainsStates.CurrentPosition = accessory.context.currentPosition ?? 0;
+    this.RelayCurtainsStates.TargetPosition = accessory.context.targetPosition ?? 0;
+
     this.accessory.getService(Service.AccessoryInformation)!
       .setCharacteristic(Characteristic.Manufacturer, 'HDL');
     this.service = this.accessory.getService(Service.WindowCovering) || this.accessory.addService(Service.WindowCovering);
@@ -62,12 +66,19 @@ export class RelayCurtains implements ABCDevice {
       if (Math.abs(this.RelayCurtainsStates.CurrentPosition - this.RelayCurtainsStates.TargetPosition) <= this.precision) {
         this.RelayCurtainsStates.CurrentPosition = this.RelayCurtainsStates.TargetPosition;
         this.service.getCharacteristic(Characteristic.CurrentPosition).updateValue(this.RelayCurtainsStates.CurrentPosition);
+        this.saveCurrentPosition();
       }
       switch (status) {
       case this.HDLStop:
+        clearInterval(this.postracker_process);
+        clearTimeout(this.stopper_process);
+        this.RelayCurtainsStates.TargetPosition = this.RelayCurtainsStates.CurrentPosition;
+        this.service.getCharacteristic(Characteristic.TargetPosition).updateValue(this.RelayCurtainsStates.TargetPosition);
         this.RelayCurtainsStates.PositionState = HMBStop;
         this.service.getCharacteristic(Characteristic.PositionState).updateValue(this.RelayCurtainsStates.PositionState);
-        this.platform.log.debug(this.name + ' reached stop at ' + this.RelayCurtainsStates.CurrentPosition);
+        this.platform.log.debug(`${this.name} stopped at ${this.RelayCurtainsStates.CurrentPosition}%`);
+        this.saveCurrentPosition();
+        this.saveTargetPosition();
         break;
       case this.HDLOpening:
         this.RelayCurtainsStates.PositionState = HMBOpening;
@@ -76,12 +87,19 @@ export class RelayCurtains implements ABCDevice {
           if (this.RelayCurtainsStates.CurrentPosition < 100) {
             ++this.RelayCurtainsStates.CurrentPosition;
             this.service.getCharacteristic(Characteristic.CurrentPosition).updateValue(this.RelayCurtainsStates.CurrentPosition);
+            this.saveCurrentPosition();
           }
         }, 10 * this.duration);
-        if ((this.RelayCurtainsStates.TargetPosition < this.RelayCurtainsStates.CurrentPosition) || (this.RelayCurtainsStates.TargetPosition === 100)) {
+        if (
+          (this.RelayCurtainsStates.TargetPosition < this.RelayCurtainsStates.CurrentPosition) ||
+          (this.RelayCurtainsStates.TargetPosition === 100) ||
+          (this.RelayCurtainsStates.TargetPosition === 0 && this.RelayCurtainsStates.CurrentPosition === 0) ||
+          (this.RelayCurtainsStates.TargetPosition === this.RelayCurtainsStates.CurrentPosition)
+        ) {
           this.platform.log.debug('Starting full open of ' + this.name + ' (from ' + this.RelayCurtainsStates.CurrentPosition + ' to ' + this.RelayCurtainsStates.TargetPosition + ')');
           this.RelayCurtainsStates.TargetPosition = 100;
           this.service.getCharacteristic(Characteristic.TargetPosition).updateValue(this.RelayCurtainsStates.TargetPosition);
+          this.saveTargetPosition();
         } else {
           this.platform.log.debug('Starting partial open of ' + this.name + ' (from ' + this.RelayCurtainsStates.CurrentPosition + ' to ' + this.RelayCurtainsStates.TargetPosition + ')');
           const pathtogo = this.RelayCurtainsStates.TargetPosition - this.RelayCurtainsStates.CurrentPosition;
@@ -94,6 +112,7 @@ export class RelayCurtains implements ABCDevice {
             }, false); //not handling this error
             this.service.getCharacteristic(Characteristic.CurrentPosition).updateValue(this.RelayCurtainsStates.CurrentPosition);
             this.platform.log.debug('Reached partial open position of ' + this.name + ' at ' + this.RelayCurtainsStates.TargetPosition);
+            this.saveCurrentPosition();
           }, 1000 * (pathtogo / 100) * this.duration);
         }
         break;
@@ -104,12 +123,19 @@ export class RelayCurtains implements ABCDevice {
           if (this.RelayCurtainsStates.CurrentPosition > 0) {
             --this.RelayCurtainsStates.CurrentPosition;
             this.service.getCharacteristic(Characteristic.CurrentPosition).updateValue(this.RelayCurtainsStates.CurrentPosition);
+            this.saveCurrentPosition();
           }
         }, 10 * this.duration);
-        if ((this.RelayCurtainsStates.TargetPosition > this.RelayCurtainsStates.CurrentPosition) || (this.RelayCurtainsStates.TargetPosition === 0)) {
+        if (
+          (this.RelayCurtainsStates.TargetPosition > this.RelayCurtainsStates.CurrentPosition) ||
+          (this.RelayCurtainsStates.TargetPosition === 0) ||
+          (this.RelayCurtainsStates.TargetPosition === 100 && this.RelayCurtainsStates.CurrentPosition === 100) ||
+          (this.RelayCurtainsStates.TargetPosition === this.RelayCurtainsStates.CurrentPosition)
+        ) {
           this.platform.log.debug('Starting full close of ' + this.name + ' (from ' + this.RelayCurtainsStates.CurrentPosition + ' to ' + this.RelayCurtainsStates.TargetPosition + ')');
           this.RelayCurtainsStates.TargetPosition = 0;
           this.service.getCharacteristic(Characteristic.TargetPosition).updateValue(this.RelayCurtainsStates.TargetPosition);
+          this.saveTargetPosition();
         } else {
           this.platform.log.debug('Starting partial close of ' + this.name + ' (from ' + this.RelayCurtainsStates.CurrentPosition + ' to ' + this.RelayCurtainsStates.TargetPosition + ')');
           const pathtogo = this.RelayCurtainsStates.CurrentPosition - this.RelayCurtainsStates.TargetPosition;
@@ -122,6 +148,7 @@ export class RelayCurtains implements ABCDevice {
             }, false); //not handling this error
             this.service.getCharacteristic(Characteristic.CurrentPosition).updateValue(this.RelayCurtainsStates.CurrentPosition);
             this.platform.log.debug('Reached partial close position of ' + this.name + ' at ' + this.RelayCurtainsStates.TargetPosition);
+            this.saveCurrentPosition();
           }, 1000 * (pathtogo / 100) * this.duration);
         }
         break;
@@ -135,9 +162,20 @@ export class RelayCurtains implements ABCDevice {
     }, false);
   }
 
+  private saveCurrentPosition() {
+    this.accessory.context.currentPosition = this.RelayCurtainsStates.CurrentPosition;
+    this.platform.api.updatePlatformAccessories([this.accessory]);
+  }
+
+  private saveTargetPosition() {
+    this.accessory.context.targetPosition = this.RelayCurtainsStates.TargetPosition;
+    this.platform.api.updatePlatformAccessories([this.accessory]);
+  }
+
   async handleTargetPositionSet(targetposition: CharacteristicValue) {
     const oldValue = this.RelayCurtainsStates.TargetPosition;
     this.RelayCurtainsStates.TargetPosition = targetposition as number;
+    this.saveTargetPosition();
     const pathtogo = (targetposition as number) - this.RelayCurtainsStates.CurrentPosition;
     let command;
     switch (targetposition) {
@@ -167,6 +205,7 @@ export class RelayCurtains implements ABCDevice {
       if (err) {
         // Revert to the old value
         this.RelayCurtainsStates.TargetPosition = oldValue;
+        this.saveTargetPosition();
         this.platform.log.error(`Error setting TargetPosition state for ${this.name}: ${err.message}`);
       } else {
         this.platform.log.debug('Successfully sent command to ' + this.name);

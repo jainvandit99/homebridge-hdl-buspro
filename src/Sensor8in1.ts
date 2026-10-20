@@ -1,8 +1,8 @@
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { Device } from 'smart-bus';
 
-import { HDLBusproHomebridge } from './HDLPlatform';
-import { ABCDevice, ABCListener } from './ABC';
+import { HDLBusproHomebridge } from './HDLPlatform.js';
+import { ABCDevice, ABCListener } from './ABC.js';
 
 export class Sensor8in1 implements ABCDevice {
   private temp_service: Service;

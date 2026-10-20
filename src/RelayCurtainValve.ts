@@ -1,9 +1,9 @@
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { Device } from 'smart-bus';
 
-import { HDLBusproHomebridge } from './HDLPlatform';
-import { RelayCurtainListener } from './RelayCurtains';
-import { ABCDevice } from './ABC';
+import { HDLBusproHomebridge } from './HDLPlatform.js';
+import { RelayCurtainListener } from './RelayCurtains.js';
+import { ABCDevice } from './ABC.js';
 
 export class RelayCurtainValve implements ABCDevice {
   private service: Service;

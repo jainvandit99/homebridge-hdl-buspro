@@ -1,17 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { ABCDevice, ABCListener } from './ABC';
-import { RelayLightbulb, RelayListener } from './RelayLightbulb';
-import { RelayDimmableLightbulb } from './RelayDimmableLightbulb';
-import { Sensor8in1, SensorListener } from './Sensor8in1';
-import { RelayLock } from './RelayLock';
-import { LeakSensor } from './LeakSensor';
-import { SmokeSensor } from './SmokeSensor';
-import { OccupancySensor } from './OccupancySensor';
-import { ContactSensor, DryListener } from './ContactSensor';
-import { RelayCurtains, RelayCurtainListener } from './RelayCurtains';
-import { RelayCurtainValve } from './RelayCurtainValve';
-import { RelayFan } from './RelayFan';
+import { ABCDevice, ABCListener } from './ABC.js';
+import { RelayLightbulb, RelayListener } from './RelayLightbulb.js';
+import { RelayDimmableLightbulb } from './RelayDimmableLightbulb.js';
+import { Sensor8in1, SensorListener } from './Sensor8in1.js';
+import { RelayLock } from './RelayLock.js';
+import { LeakSensor } from './LeakSensor.js';
+import { SmokeSensor } from './SmokeSensor.js';
+import { OccupancySensor } from './OccupancySensor.js';
+import { ContactSensor, DryListener } from './ContactSensor.js';
+import { RelayCurtains, RelayCurtainListener } from './RelayCurtains.js';
+import { RelayCurtainValve } from './RelayCurtainValve.js';
+import { RelayFan } from './RelayFan.js';
+import { RelayRGB } from './RelayRGB.js';
+import { RelayHeater } from './RelayHeater.js';
 
 export interface DeviceType<T extends ABCDevice, U extends ABCListener> {
   deviceClass: new (...args: any[]) => T;
@@ -41,6 +43,20 @@ export const deviceTypeMap: {[key: string]: DeviceType<any, any>} = {
     uniqueArgs: (config) => [config.channel],
     idEnding: (config) => `${config.channel}`,
   },
+  // RGB support (handled by a dedicated code path in HDLPlatform)
+  'relayrgb': {
+    deviceClass: RelayRGB,
+    listener: RelayListener,
+    uniqueArgs: (config) => [config.red_channel, config.green_channel, config.blue_channel],
+    idEnding: (config) => `${config.red_channel}-${config.green_channel}-${config.blue_channel}`,
+  },
+  // Heater support
+  'relayheater': {
+    deviceClass: RelayHeater,
+    listener: RelayListener,
+    uniqueArgs: (config) => [config.channel],
+    idEnding: (config) => `${config.channel}`,
+  },
   'sensor8in1': {
     deviceClass: Sensor8in1,
     listener: SensorListener,
@@ -62,7 +78,7 @@ export const deviceTypeMap: {[key: string]: DeviceType<any, any>} = {
   'relaycurtainvalve': {
     deviceClass: RelayCurtainValve,
     listener: RelayCurtainListener,
-    uniqueArgs: (config) => [config.channel, config.nc, config.valvetype],
+    uniqueArgs: (config) => [config.channel, config.nc, config.valve_type],
     idEnding: (config) => `${config.channel}`,
   },
   'contactsensor': {

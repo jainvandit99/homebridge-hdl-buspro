@@ -5,6 +5,13 @@
     "schema": {
         "type": "object",
         "properties": {
+            "name": {
+                "title": "Name",
+                "type": "string",
+                "default": "HDLBusproHomebridge",
+                "description": "The name for this HDL Buspro platform instance (appears in Homebridge Logs).",
+                "required": true
+            },
             "buses": {
                 "title": "Buses",
                 "type": "array",
@@ -95,6 +102,15 @@
                                                         }, {
                                                             "title": "Relay Curtain Valve",
                                                             "enum": ["relaycurtainvalve"]
+                                                        }, {
+                                                            "title": "Relay RGB",
+                                                            "enum": ["relayrgb"]
+                                                        }, {
+                                                            "title": "Relay Fan",
+                                                            "enum": ["relayfan"]
+                                                        }, {
+                                                            "title": "Relay Heater",
+                                                            "enum": ["relayheater"]
                                                         }
                                                     ]
                                                 },
@@ -108,6 +124,24 @@
                                                 },
                                                 "channel": {
                                                     "title": "Device Channel",
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 254
+                                                },
+                                                "red_channel": {
+                                                    "title": "Red Channel",
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 254
+                                                },
+                                                "green_channel": {
+                                                    "title": "Green Channel",
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 254
+                                                },
+                                                "blue_channel": {
+                                                    "title": "Blue Channel",
                                                     "type": "number",
                                                     "minimum": 0,
                                                     "maximum": 254
@@ -183,9 +217,14 @@
                     }
                 }
             }
-        }
+        },
+        "required": ["name", "buses"]
     },
     "layout": [{
+            "key": "name",
+            "type": "string",
+            "placeholder": "My HDL Buspro System"
+        }, {
             "key": "buses",
             "type": "tabarray",
             "title": "{{ value.bus_name || 'bus' }}",
@@ -222,7 +261,22 @@
                                         }, {
                                             "key": "buses[].subnets[].devices[].channel",
                                             "condition": {
-                                                "functionBody": "return (['relaylightbulb', 'relaydimmablelightbulb', 'drycontact', 'relaylock'].includes(model.buses[arrayIndices[0]].subnets[arrayIndices[1]].devices[arrayIndices[2]].device_type))"
+                                                "functionBody": "return (['relaylightbulb', 'relaydimmablelightbulb', 'drycontact', 'relaylock', 'relaycurtains', 'relayfan', 'relayheater'].includes(model.buses[arrayIndices[0]].subnets[arrayIndices[1]].devices[arrayIndices[2]].device_type))"
+                                            }
+                                        }, {
+                                            "key": "buses[].subnets[].devices[].red_channel",
+                                            "condition": {
+                                                "functionBody": "return (['relayrgb'].includes(model.buses[arrayIndices[0]].subnets[arrayIndices[1]].devices[arrayIndices[2]].device_type))"
+                                            }
+                                        }, {
+                                            "key": "buses[].subnets[].devices[].green_channel",
+                                            "condition": {
+                                                "functionBody": "return (['relayrgb'].includes(model.buses[arrayIndices[0]].subnets[arrayIndices[1]].devices[arrayIndices[2]].device_type))"
+                                            }
+                                        }, {
+                                            "key": "buses[].subnets[].devices[].blue_channel",
+                                            "condition": {
+                                                "functionBody": "return (['relayrgb'].includes(model.buses[arrayIndices[0]].subnets[arrayIndices[1]].devices[arrayIndices[2]].device_type))"
                                             }
                                         }, {
                                             "key": "buses[].subnets[].devices[].drycontact_type",
@@ -254,7 +308,7 @@
                                                 "functionBody": "return (['relaylock', 'drycontact'].includes(model.buses[arrayIndices[0]].subnets[arrayIndices[1]].devices[arrayIndices[2]].device_type))"
                                             }
                                         }, {
-                                            "key": "buses[].subnets[].devices[].valvetype",
+                                            "key": "buses[].subnets[].devices[].valve_type",
                                             "condition": {
                                                 "functionBody": "return (['relaycurtainvalve'].includes(model.buses[arrayIndices[0]].subnets[arrayIndices[1]].devices[arrayIndices[2]].device_type))"
                                             }

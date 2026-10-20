@@ -2,8 +2,8 @@ import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { EventEmitter } from 'events';
 import { Device } from 'smart-bus';
 
-import { HDLBusproHomebridge } from './HDLPlatform';
-import { ABCDevice, ABCListener } from './ABC';
+import { HDLBusproHomebridge } from './HDLPlatform.js';
+import { ABCDevice, ABCListener } from './ABC.js';
 
 export class RelayLightbulb implements ABCDevice {
   private service: Service;

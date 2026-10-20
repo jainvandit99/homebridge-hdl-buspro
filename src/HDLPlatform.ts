@@ -3,9 +3,10 @@
 import { API, Characteristic, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
 import SmartBus, { Bus, Device } from 'smart-bus';
 
-import { ABCDevice, ABCListener } from './ABC';
-import { DeviceType, deviceTypeMap } from './DeviceList';
-import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
+import { ABCDevice, ABCListener } from './ABC.js';
+import { DeviceType, deviceTypeMap } from './DeviceList.js';
+import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
+import { RelayRGB } from './RelayRGB.js';
 
 
 function buildDevice(
@@ -49,6 +50,10 @@ export class HDLBusproHomebridge implements DynamicPlatformPlugin {
   }
 
   discoverDevices() {
+    if (!Array.isArray(this.config.buses)) {
+      this.log.error(`Plugin configuration error: "buses" must be a valid array in your config.json. Current value: ${JSON.stringify(this.config.buses)}`);
+      return;
+    }
     for (const bus of this.config.buses) {
       const ip: string = bus.bus_IP;
       const port: number = bus.bus_port;
@@ -78,6 +83,12 @@ export class HDLBusproHomebridge implements DynamicPlatformPlugin {
   ) {
     const deviceAddress = `${subnet_number}.${device.device_address}`;
     const deviceType: string = (device.device_type === 'drycontact') ? device.drycontact_type : device.device_type;
+
+    if (deviceType === 'relayrgb') {
+      this.handleRGBDevice(device, deviceAddress, uniqueIDPrefix, busObj, controllerObj);
+      return;
+    }
+
     const deviceTypeConfig: DeviceType<any, any> = deviceTypeMap[deviceType];
     if (!deviceTypeConfig) {
       this.log.error('Invalid device type:', deviceType);
@@ -102,6 +113,29 @@ export class HDLBusproHomebridge implements DynamicPlatformPlugin {
     const commonArgs = [device.device_name, controllerObj, deviceObj, listenerObj];
     const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
     buildDevice(this, existingAccessory, deviceClass, commonArgs, uniqueArgs(device), uuid);
+  }
+
+  handleRGBDevice(
+    device,
+    deviceAddress: string,
+    uniqueIDPrefix: string,
+    busObj: Bus,
+    controllerObj: Device,
+  ) {
+    const redChannel = device.red_channel;
+    const greenChannel = device.green_channel;
+    const blueChannel = device.blue_channel;
+
+    if (redChannel === undefined || greenChannel === undefined || blueChannel === undefined) {
+      this.log.error(`RGB channels undefined for ${device.device_name} - check configuration`);
+      return;
+    }
+
+    const uniqueID = `${uniqueIDPrefix}.${device.device_address}.rgb.${redChannel}-${greenChannel}-${blueChannel}`;
+    const uuid: string = this.api.hap.uuid.generate(uniqueID);
+    const deviceObj = busObj.device(deviceAddress);
+    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
+    buildDevice(this, existingAccessory, RelayRGB, [device.device_name, controllerObj, deviceObj], [redChannel, greenChannel, blueChannel], uuid);
   }
 }
 

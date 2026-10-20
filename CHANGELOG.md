@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.3.0 (2026-10-20)
+
+* [+] Homebridge 2.0 support (ESM migration, engines updated to `homebridge ^1.8.0 || ^2.0.0`)
+* [+] Added Relay RGB support (control an RGB light via 3 relay channels)
+* [+] Added Relay Heater support (HDL floor-heating module)
+* [+] Fixed curtain physical control being blocked by wall switches
+* [+] Fixed curtain external control not syncing status
+* [+] Curtain positions now persist across Homebridge restarts
+* [+] Fixed boot-loop crash when the `buses` config is missing
+* [+] Fixed config schema: channel field now shown for curtains/fans, valve type key corrected
+* [+] Updated CI to test Node 20/22/24
+
 ## 2.2.0 (2023-04-02)
 
 * [+] Massive codestyle rehaul

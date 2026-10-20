@@ -1,9 +1,9 @@
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import Device from 'smart-bus';
 
-import { HDLBusproHomebridge } from './HDLPlatform';
-import { RelayListener } from './RelayLightbulb';
-import { ABCDevice } from './ABC';
+import { HDLBusproHomebridge } from './HDLPlatform.js';
+import { RelayListener } from './RelayLightbulb.js';
+import { ABCDevice } from './ABC.js';
 
 
 const HMBOpen = 0;
